@@ -17,11 +17,16 @@
 
 ## 项目结构
 
+```text
 src/
 ├── model/
+│   └── Student.java
 ├── service/
+│   └── RollCallService.java
 ├── web/
+│   └── WebServer.java
 └── students.txt
+```
 
 ## 运行方式
 
