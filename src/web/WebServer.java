@@ -9,6 +9,7 @@ import service.RollCallService;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,8 +20,8 @@ public class WebServer {
     public static void main(String[] args) throws Exception {
         // 创建 HTTP 服务器并绑定 8080 端口
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
-        server.createContext("/", new IndexHandler());
-        server.createContext("/rollcall", new RollCallHandler());
+        server.createContext("/", new web.WebServer.IndexHandler());
+        server.createContext("/rollcall", new web.WebServer.RollCallHandler());
         server.setExecutor(null);
 
         System.out.println("=================================================");
@@ -34,11 +35,13 @@ public class WebServer {
     static class IndexHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            // 1. 从 service 获取当前状态
             Student luckyGuy = service.getLuckyGuy();
             int failCount = service.getContinuousFailCount();
             int N = service.getN();
             boolean allFailed = service.isAllFailedWarning();
 
+            // 2. 动态拼接 HTML
             StringBuilder html = new StringBuilder();
             html.append("<!DOCTYPE html><html><head><meta charset='UTF-8'>")
                     .append("<meta http-equiv='Cache-Control' content='no-cache, no-store, must-revalidate'>")
@@ -115,7 +118,8 @@ public class WebServer {
 
             html.append("</tbody></table></div></div></body></html>");
 
-            byte[] response = html.toString().getBytes("UTF-8");
+            // 3. 将 HTML 字节响应给浏览器
+            byte[] response = html.toString().getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
             exchange.sendResponseHeaders(200, response.length);
             OutputStream os = exchange.getResponseBody();
@@ -128,6 +132,7 @@ public class WebServer {
     static class RollCallHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            // 1. 解析 URL 查询参数（如 ?action=pick&id=1001&correct=true）
             String query = exchange.getRequestURI().getQuery();
             Map<String, String> params = new HashMap<>();
             if (query != null) {
@@ -135,11 +140,11 @@ public class WebServer {
                 for (String pair : pairs) {
                     String[] kv = pair.split("=");
                     if (kv.length == 2) {
-                        params.put(URLDecoder.decode(kv[0], "UTF-8"), URLDecoder.decode(kv[1], "UTF-8"));
+                        params.put(URLDecoder.decode(kv[0], StandardCharsets.UTF_8), URLDecoder.decode(kv[1], StandardCharsets.UTF_8));
                     }
                 }
             }
-
+            // 2. 根据 action 调用对应 service 方法
             String action = params.getOrDefault("action", "");
             if ("pick".equals(action)) {
                 service.executeRollCall();
@@ -149,7 +154,7 @@ public class WebServer {
                 service.resetToDefault();
             }
 
-            // 操作执行后，重定向跳转回主页
+            // 3. 重定向回主页（302 状态码）
             exchange.getResponseHeaders().set("Location", "/");
             exchange.sendResponseHeaders(302, -1);
             exchange.close();

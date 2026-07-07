@@ -3,9 +3,9 @@ package model;
 // 学生实体类：存放学生的基本信息、点名次数和正确次数
 public class Student {
     // 学号
-    private String id;
+    private final String id;
     // 姓名
-    private String name;
+    private final String name;
     // 被点名总次数
     private int callCount;
     // 回答正确的次数

@@ -5,7 +5,6 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.stream.Collectors;
 
 // 点名系统业务逻辑类：处理文件的读写、点名算法的筛选以及结果的更新
 public class RollCallService {
@@ -56,6 +55,7 @@ public class RollCallService {
                 }
             }
         } catch (IOException e) {
+            //noinspection CallToPrintStackTrace
             e.printStackTrace();
         }
     }
@@ -68,6 +68,7 @@ public class RollCallService {
                 bw.newLine();
             }
         } catch (IOException e) {
+            //noinspection CallToPrintStackTrace
             e.printStackTrace();
         }
     }
@@ -92,9 +93,9 @@ public class RollCallService {
     }
 
     // 核心点名算法
-    public synchronized Student executeRollCall() {
+    public synchronized void executeRollCall() {
         if (studentList.isEmpty()) {
-            return null;
+            return;
         }
 
         isAllFailedWarning = false;
@@ -114,7 +115,7 @@ public class RollCallService {
                         // 次数少的排前面
                         return Integer.compare(s1.getCallCount(), s2.getCallCount());
                     })
-                    .collect(Collectors.toList());
+                    .toList();
 
             if (!sortedElites.isEmpty()) {
                 luckyGuy = sortedElites.get(0);
@@ -124,7 +125,7 @@ public class RollCallService {
                 failedIdsInThisRound.clear();
                 continuousFailCount = 0;
                 luckyGuy = null;
-                return null;
+                return;
             }
 
             // 分支 B：正常情况下，执行最少点名次数的公平随机抽取
@@ -148,7 +149,6 @@ public class RollCallService {
 
         luckyGuy.setCallCount(luckyGuy.getCallCount() + 1);
         saveStudents();
-        return luckyGuy;
     }
 
     // 处理点名回答结果
